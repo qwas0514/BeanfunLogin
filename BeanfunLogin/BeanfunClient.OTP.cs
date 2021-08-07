@@ -40,15 +40,11 @@ namespace BeanfunLogin
             }
         }
 
-        public string GetOTP(int loginMethod, AccountList acc, string service_code="610074", string service_region="T9")
+        public string GetOTP(AccountList acc, string service_code="610074", string service_region="T9")
         {
             try
             {
-                string response;
-                if (true) //loginMethod == (int)LoginMethod.PlaySafe || loginMethod == (int)LoginMethod.QRCode)
-                    response = this.DownloadString("https://tw.beanfun.com/beanfun_block/game_zone/game_start_step2.aspx?service_code="+service_code+"&service_region="+service_region+"&sotp=" + acc.sotp + "&dt=" + GetCurrentTime(2), Encoding.UTF8);
-                else
-                    response = this.DownloadString("https://tw.beanfun.com/beanfun_block/auth.aspx?channel=game_zone&page_and_query=game_start_step2.aspx%3Fservice_code%3D"+service_code+"%26service_region%3D"+service_region+"%26sotp%3D" + acc.sotp + "&web_token=" + this.webtoken);
+                string response = this.DownloadString("https://tw.beanfun.com/beanfun_block/game_zone/game_start_step2.aspx?service_code="+service_code+"&service_region="+service_region+"&sotp=" + acc.sotp + "&dt=" + GetCurrentTime(2), Encoding.UTF8);
                 if (response == "")
                 { this.errmsg = "OTPNoResponse"; return null; }
 

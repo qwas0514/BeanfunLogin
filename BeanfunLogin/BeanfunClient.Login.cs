@@ -63,156 +63,6 @@ namespace BeanfunLogin
             }
         }
 
-        private bool vaktenAuthenticate(string lblSID)
-        {
-            try
-            {
-                string[] ports = { "14057", "16057", "17057" };
-                foreach (string port in ports)
-                {
-                    string response = this.DownloadString("https://vaktenlocal.com:" + port + "/api/2/authenticate.jsonp?customerId=GAMANIA&sessionId=" + lblSID + "&api=https://api.keypascoid.com/Rest/ApiService/3&callback=_jqjsp&alt=json-in-script");
-                    if (response == "_jqjsp( {\"statusCode\":200} );")
-                    {
-                        //response = this.DownloadString("https://localhost:" + port + "/api/1/aut.jsonp?sid=GAMANIA" + lblSID + "&api=YXBpLmtleXBhc2NvaWQuY29tOjQ0My9SZXN0L0FwaVNlcnZpY2Uv&callback=_jqjsp&alt=json-in-script");
-                        //if (response == "_jqjsp( {\"statusCode\":200} );") return true;
-                        return true;
-                    }
-                }
-                return false;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private string KeypascoLogin(string id, string pass, string skey)
-        {
-            try
-            {
-                string response = this.DownloadString("https://tw.newlogin.beanfun.com/login/keypasco_form.aspx?skey=" + skey);
-                Regex regex = new Regex("id=\"__VIEWSTATE\" value=\"(.*)\" />");
-                if (!regex.IsMatch(response))
-                { this.errmsg = "LoginNoViewstate"; return null; }
-                string viewstate = regex.Match(response).Groups[1].Value;
-                regex = new Regex("id=\"__EVENTVALIDATION\" value=\"(.*)\" />");
-                if (!regex.IsMatch(response))
-                { this.errmsg = "LoginNoEventvalidation"; return null; }
-                string eventvalidation = regex.Match(response).Groups[1].Value;
-                // lblSID" style=\"color:White;\">31yf35fkkyi5pd55fvkts345</span>
-                //regex = new Regex("lblSID\"><font color=\"White\">(\\w+)</font></span>");
-                regex = new Regex("lblSID\" style=\"color:White;\">(\\w+)</span>");
-                if (!regex.IsMatch(response))
-                { this.errmsg = "LoginNoLblSID"; return null; }
-                string lblSID = regex.Match(response).Groups[1].Value;
-                if (!vaktenAuthenticate(lblSID))
-                { this.errmsg = "LoginNoResponseVakten"; return null; }
-
-                NameValueCollection payload = new NameValueCollection();
-                payload.Add("__EVENTTARGET", "");
-                payload.Add("__EVENTARGUMENT", "");
-                payload.Add("__VIEWSTATE", viewstate);
-                payload.Add("__EVENTVALIDATION", eventvalidation);
-                payload.Add("t_AccountID", id);
-                payload.Add("t_Password", pass);
-                payload.Add("CodeTextBox", "");
-                payload.Add("btn_login.x", "46");
-                payload.Add("btn_login.y", "31");
-                payload.Add("LBD_VCID_c_login_keypasco_form_samplecaptcha", "");
-                response = Encoding.UTF8.GetString(this.UploadValues("https://tw.newlogin.beanfun.com/login/keypasco_form.aspx?skey=" + skey, payload));
-                regex = new Regex("akey=(.*)");
-                if (!regex.IsMatch(this.ResponseUri.ToString()))
-                { this.errmsg = "LoginNoAkey"; return null; }
-                return regex.Match(this.ResponseUri.ToString()).Groups[1].Value;
-            }
-            catch (Exception e)
-            {
-                this.errmsg = "LoginUnknown\n\n" + e.Message + "\n" + e.StackTrace;
-                return null;
-            }
-        }
-
-        private string playsafeLogin(string id, string pass, string skey)
-        {
-            try
-            {
-                string response = this.DownloadString("https://tw.newlogin.beanfun.com/login/playsafe_form.aspx?skey=" + skey);
-                Regex regex = new Regex("id=\"__VIEWSTATE\" value=\"(.*)\" />");
-                if (!regex.IsMatch(response))
-                { this.errmsg = "LoginNoViewstate"; return null; }
-                string viewstate = regex.Match(response).Groups[1].Value;
-                regex = new Regex("id=\"__EVENTVALIDATION\" value=\"(.*)\" />");
-                if (!regex.IsMatch(response))
-                { this.errmsg = "LoginNoEventvalidation"; return null; }
-                string eventvalidation = regex.Match(response).Groups[1].Value;
-                response = this.DownloadString("https://tw.newlogin.beanfun.com/generic_handlers/get_security_otp.ashx?d=" + GetCurrentTime(1));
-                regex = new Regex("<playsafe_otp>(\\w+)</playsafe_otp>");
-                if (!regex.IsMatch(response))
-                { this.errmsg = "LoginNoSotp"; return null; }
-                string sotp = regex.Match(response).Groups[1].Value;
-
-                PlaySafe ps = null;
-                try
-                {
-                    ps = new PlaySafe();
-                }
-                catch (Exception e)
-                {
-                    this.errmsg = "LoginNoPSDriver";
-                    return null;
-                }
-                var readername = ps.GetReader();
-                if (readername == null)
-                { this.errmsg = "LoginNoReaderName"; return null; }
-                if (ps.cardType == null)
-                { this.errmsg = "LoginNoCardType"; return null; }
-
-                string original = null;
-                string signature = null;
-                if (ps.cardType == "F")
-                {
-                    ps.cardid = ps.GetPublicCN(readername);
-                    if (ps.cardid == null)
-                    { this.errmsg = "LoginNoCardId"; return null; }
-                    var opinfo = ps.GetOPInfo(readername, pass);
-                    if (opinfo == null)
-                    { this.errmsg = "LoginNoOpInfo"; return null; }
-                    original = ps.cardType + "~" + sotp + "~" + id + "~" + opinfo;
-                    signature = ps.EncryptData(readername, pass, original);
-                    if (signature == null)
-                    { this.errmsg = "LoginNoEncryptedData"; return null; }
-                }
-                else if (ps.cardType == "G")
-                {
-                    original = ps.cardType + "~" + sotp + "~" + id + "~";
-                    signature = ps.FSCAPISign(pass, original);
-                }
-                NameValueCollection payload = new NameValueCollection();
-                payload.Add("__EVENTTARGET", "");
-                payload.Add("__EVENTARGUMENT", "");
-                payload.Add("__VIEWSTATE", viewstate);
-                payload.Add("__EVENTVALIDATION", eventvalidation);
-                payload.Add("card_check_id", ps.cardid);
-                payload.Add("original", original);
-                payload.Add("signature", signature);
-                payload.Add("serverotp", sotp);
-                payload.Add("t_AccountID", id);
-                payload.Add("t_Password", pass);
-                payload.Add("btn_login", "Login");
-                
-                response = Encoding.UTF8.GetString(this.UploadValues("https://tw.newlogin.beanfun.com/login/playsafe_form.aspx?skey=" + skey, payload));
-                regex = new Regex("akey=(.*)");
-                if (!regex.IsMatch(this.ResponseUri.ToString()))
-                { this.errmsg = "LoginNoAkey"; return null; }
-                return ps.cardid + " " + regex.Match(this.ResponseUri.ToString()).Groups[1].Value;
-            }
-            catch (Exception e)
-            {
-                this.errmsg = "LoginUnknown\n\n" + e.Message + "\n" + e.StackTrace;
-                return null;
-            }
-        }
-
         public class QRCodeClass
         {
             public string skey;
@@ -374,14 +224,12 @@ namespace BeanfunLogin
 
         public void Login(string id, string pass, int loginMethod, QRCodeClass qrcodeClass = null, string service_code = "610074", string service_region = "T9")
         {
-            this.cardid = null;
             this.webtoken = null;
             try
             {
                 string response = null;
                 string skey = null;
                 string akey = null;
-                string cardid = null;
                 if (loginMethod == (int)LoginMethod.QRCode)
                 {
                     skey = qrcodeClass.skey;
@@ -395,20 +243,6 @@ namespace BeanfunLogin
                 {
                     case (int)LoginMethod.Regular:
                         akey = RegularLogin(id, pass, skey);
-                        break;
-                    case (int)LoginMethod.Keypasco:
-                        akey = KeypascoLogin(id, pass, skey);
-                        break;
-                    case (int)LoginMethod.PlaySafe:
-                        string r = playsafeLogin(id, pass, skey);
-                        if (r == null)
-                            return;
-                        string[] temp = r.Split(' ');
-                        if (temp.Count() != 2)
-                        { this.errmsg = "LoginPlaySafeResultError"; return; }
-                        cardid = temp[0];
-                        akey = temp[1];
-                        this.cardid = cardid;
                         break;
                     case (int)LoginMethod.QRCode:
                         akey = QRCodeLogin(qrcodeClass);

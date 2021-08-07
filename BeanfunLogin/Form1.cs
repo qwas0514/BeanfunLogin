@@ -26,9 +26,7 @@ namespace BeanfunLogin
 {
     enum LoginMethod : int {
         Regular = 0,
-        Keypasco = 1,
-        PlaySafe = 2,
-        QRCode = 3
+        QRCode = 1
     };
 
     public partial class main : Form
@@ -123,42 +121,16 @@ namespace BeanfunLogin
                 case "LoginNoAccount":
                     msg = "找不到遊戲帳號。";
                     break;
-                case "LoginNoResponseVakten":
-                    msg = "登入失敗，與伺服器驗證失敗，請檢查是否安裝且已執行vakten程式。";
-                    break;
                 case "LoginUnknown":
                     msg = "登入失敗，請稍後再試";
                     method = 0;
                     break;
                 case "OTPNoLongPollingKey":
-                    if (Properties.Settings.Default.loginMethod == (int)LoginMethod.PlaySafe)
-                        msg = "密碼獲取失敗，請檢查晶片卡是否插入讀卡機，且讀卡機運作正常。\n若仍出現此訊息，請嘗試重新登入。";
-                    else
-                    {
-                        msg = "已從伺服器斷線，請重新登入。";
-                        method = 1;
-                    }
-                    break;
-                case "LoginNoReaderName":
-                    msg = "登入失敗，找不到晶片卡或讀卡機，請檢查晶片卡是否插入讀卡機，且讀卡機運作正常。\n若還是發生此情形，請嘗試重新登入。";
-                    break;
-                case "LoginNoCardType":
-                    msg = "登入失敗，晶片卡讀取失敗。";
-                    break;
-                case "LoginNoCardId":
-                    msg = "登入失敗，找不到讀卡機。";
-                    break;
-                case "LoginNoOpInfo":
-                    msg = "登入失敗，讀卡機讀取失敗。";
-                    break;
-                case "LoginNoEncryptedData":
-                    msg = "登入失敗，晶片卡讀取失敗。";
+                    msg = "已從伺服器斷線，請重新登入。";
+                    method = 1;
                     break;
                 case "OTPUnknown":
                     msg = "獲取密碼失敗，請嘗試重新登入。";
-                    break;
-                case "LoginNoPSDriver":
-                    msg = "PlaySafe驅動初始化失敗，請檢查PlaySafe元件是否已正確安裝。";
                     break;
                 default:
                     break;
@@ -198,7 +170,7 @@ namespace BeanfunLogin
         {
             try
             {
-                this.Text = $"BeanfunLogin - v{ currentVersion.Major }.{ currentVersion.Minor }.{ currentVersion.Build }({ currentVersion.Revision })";
+                this.Text = $"BeanfunLogin - v{ currentVersion.Major }.{ currentVersion.Minor }.{ currentVersion.Build } ({ currentVersion.Revision })";
                 this.AcceptButton = this.loginButton;
                 this.bfClient = null;
                 this.accountManager = new AccountManager();
@@ -236,7 +208,7 @@ namespace BeanfunLogin
                     this.UseWaitCursor = true;
                     this.panel2.Enabled = false;
                     this.loginButton.Text = "請稍後...";
-                    this.loginWorker.RunWorkerAsync(Properties.Settings.Default.loginMethod);
+                    this.loginWorker.RunWorkerAsync();
                 }
                 if (gamePaths.Get("新楓之谷") == "")
                 {
@@ -250,7 +222,7 @@ namespace BeanfunLogin
                     }
                 }
 
-                this.loginMethodInput.SelectedIndex = Properties.Settings.Default.loginMethod;
+                this.loginMethodInput.SelectedIndex = safeReadLoginMethodSetting();
                 this.textBox3.Text = "";
 
                 if (this.accountInput.Text == "")
@@ -393,7 +365,7 @@ namespace BeanfunLogin
                 timedActivity = new CSharpAnalytics.Activities.AutoTimedEventActivity("Login", Properties.Settings.Default.loginMethod.ToString());
                 AutoMeasurement.Client.TrackEvent("Login" + Properties.Settings.Default.loginMethod.ToString(), "Login");
             }
-            this.loginWorker.RunWorkerAsync(Properties.Settings.Default.loginMethod);
+            this.loginWorker.RunWorkerAsync();
         }    
 
         // The get OTP button.
@@ -585,11 +557,7 @@ namespace BeanfunLogin
 
             Properties.Settings.Default.loginMethod = this.loginMethodInput.SelectedIndex;
 
-            if (Properties.Settings.Default.loginMethod == (int)LoginMethod.PlaySafe)
-            {
-                this.passLabel.Text = "PIN碼";
-            }
-            else if (Properties.Settings.Default.loginMethod == (int)LoginMethod.QRCode)
+            if (Properties.Settings.Default.loginMethod == (int)LoginMethod.QRCode)
             {
                 accountInput.Visible = false;
                 accountLabel.Visible = false;
@@ -650,9 +618,34 @@ namespace BeanfunLogin
             }
         }
 
+        /// <summary>
+        /// After we removed PlaySafe and keypasco, the index of QRCode has beed shrinked to 1.
+        /// </summary>
+        /// <returns></returns>
+        private int safeReadLoginMethodSetting()
+        {
+            int v = Properties.Settings.Default.loginMethod;
+            switch (v)
+            {
+                case 3: // QRCode
+                    // fix setting.
+                    Properties.Settings.Default.loginMethod = 1;
+                    return 1;
+                case 1: // PlaySafe or New QRCode.
+                    return 1;
+                case 2: // KeyPasco
+                    // fix setting.
+                    Properties.Settings.Default.loginMethod = 0;
+                    return 0;
+            }
+
+            return 0;
+        }
+
         private void import_Click(object sender, EventArgs e)
         {
-            bool res = accountManager.addAccount(accountInput.Text, passwdInput.Text, loginMethodInput.SelectedIndex);
+            // Only Regular login is working, QRCode doesn't need to keep account or password.
+            bool res = accountManager.addAccount(accountInput.Text, passwdInput.Text, (int)LoginMethod.Regular);
             if (res == false)
                 errexit("帳號記錄新增失敗",0);
             refreshAccountList();
@@ -663,6 +656,11 @@ namespace BeanfunLogin
             }
         }
 
+        /// <summary>
+        ///  Read account from account manager and fill in to account/password input box.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void export_Click(object sender, EventArgs e)
         {
             if(accounts.SelectedIndex != -1)
@@ -678,7 +676,8 @@ namespace BeanfunLogin
 
                 accountInput.Text = account;
                 passwdInput.Text = passwd;
-                loginMethodInput.SelectedIndex = method;
+                // Only Regular login is working, QRCode doesn't need to keep account or password.
+                loginMethodInput.SelectedIndex = (int)LoginMethod.Regular;
 
                 if (Properties.Settings.Default.GAEnabled)
                 {
@@ -730,6 +729,11 @@ namespace BeanfunLogin
             BackToLogin();
         }
 
+        /// <summary>
+        /// Set GamePath from File Dialog
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void button2_Click(object sender, EventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();

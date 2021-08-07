@@ -346,8 +346,6 @@
             this.loginMethodInput.FormattingEnabled = true;
             this.loginMethodInput.Items.AddRange(new object[] {
             "一般登入",
-            "金鑰一哥",
-            "PLAYSAFE",
             "QRCode"});
             this.loginMethodInput.Location = new System.Drawing.Point(105, 18);
             this.loginMethodInput.Name = "loginMethodInput";
@@ -451,10 +449,11 @@
             // 
             this.useNewQRCode.AutoSize = true;
             this.useNewQRCode.Checked = global::BeanfunLogin.Properties.Settings.Default.useNewQRCode;
+            this.useNewQRCode.CheckState = System.Windows.Forms.CheckState.Checked;
             this.useNewQRCode.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::BeanfunLogin.Properties.Settings.Default, "useNewQRCode", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.useNewQRCode.Location = new System.Drawing.Point(46, 48);
             this.useNewQRCode.Name = "useNewQRCode";
-            this.useNewQRCode.Size = new System.Drawing.Size(296, 34);
+            this.useNewQRCode.Size = new System.Drawing.Size(188, 23);
             this.useNewQRCode.TabIndex = 45;
             this.useNewQRCode.Text = "使用新版 QRCode 圖片";
             this.useNewQRCode.UseVisualStyleBackColor = true;

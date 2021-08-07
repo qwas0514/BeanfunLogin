@@ -30,9 +30,9 @@ namespace BeanfunLogin
             e.Result = "";
             try
             {
-                if (Properties.Settings.Default.loginMethod != (int)LoginMethod.QRCode)
+                if (safeReadLoginMethodSetting() != (int)LoginMethod.QRCode)
                     this.bfClient = new BeanfunClient();
-                this.bfClient.Login(this.accountInput.Text, this.passwdInput.Text, Properties.Settings.Default.loginMethod, this.qrcodeClass, this.service_code, this.service_region);
+                this.bfClient.Login(this.accountInput.Text, this.passwdInput.Text, safeReadLoginMethodSetting(), this.qrcodeClass, this.service_code, this.service_region);
                 if (this.bfClient.errmsg != null)
                     e.Result = this.bfClient.errmsg;
                 else
@@ -141,7 +141,7 @@ namespace BeanfunLogin
                 return;
             }
             Debug.WriteLine("call GetOTP");
-            this.otp = this.bfClient.GetOTP(Properties.Settings.Default.loginMethod, this.bfClient.accountList[index], this.service_code, this.service_region);
+            this.otp = this.bfClient.GetOTP(this.bfClient.accountList[index], this.service_code, this.service_region);
             Debug.WriteLine("call GetOTP done");
             if (this.otp == null)
             {
