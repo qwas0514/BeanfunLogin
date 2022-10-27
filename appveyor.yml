@@ -33,7 +33,7 @@ deploy:
 - provider: GitHub
   release: $(appveyor_repo_tag_name)
   auth_token:
-    secure: cQZ4LdC6ouImg7hZpXhi44OLcMjrD+tmowA5MDwNeMXmVO9P/sUtUU5/EJVxt253
+    secure: 4+fIz0aANFq5XUPZVAAugFU6xRu0/1wscOYz3ZEaUf4QT+KpT7+HrJoXKPaRo/kJ
   draft: false
   on:
     appveyor_repo_tag: true
