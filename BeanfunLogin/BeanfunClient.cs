@@ -50,14 +50,14 @@ namespace BeanfunLogin
             return ret;
         }
 
-        public string DownloadString(string Uri)
+        public new string DownloadString(string Uri)
         {
             this.Headers.Set("User-Agent", userAgent);
             var ret = base.DownloadString(Uri);
             return ret;
         }
 
-        public byte[] UploadValues(string skey, NameValueCollection payload)
+        public new byte[] UploadValues(string skey, NameValueCollection payload)
         {
             this.Headers.Set("User-Agent", userAgent);
             return base.UploadValues(skey, payload);
